@@ -469,178 +469,151 @@ with nav_tab2:
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 3: Model Evaluation Analytics & Graphs
+# (reads everything from evaluation_results/ — produced by `python evaluate.py`)
 # ═════════════════════════════════════════════════════════════════════════════
 with nav_tab3:
     st.subheader("Model Evaluation & Diagnostic Analytics")
-    st.markdown("Quantitative assessment on the independent validation split (360 high-resolution steel plate micrographs).")
-
-    # Hardcoded ground-truth benchmark metrics so they render permanently on cloud deployment
-    PERMANENT_BENCHMARK = {
-        "Crazing": {"precision": 0.9091, "recall": 1.0000, "f1-score": 0.9524, "support": 60},
-        "Inclusion": {"precision": 0.6351, "recall": 0.7833, "f1-score": 0.7015, "support": 60},
-        "Patches": {"precision": 1.0000, "recall": 0.8500, "f1-score": 0.9189, "support": 60},
-        "Pitted Surface": {"precision": 0.6462, "recall": 0.7000, "f1-score": 0.6720, "support": 60},
-        "Rolled-In Scale": {"precision": 0.9091, "recall": 1.0000, "f1-score": 0.9524, "support": 60},
-        "Scratches": {"precision": 1.0000, "recall": 0.6333, "f1-score": 0.7755, "support": 60},
-        "accuracy": 0.8278,
-        "macro avg": {"precision": 0.8499, "recall": 0.8278, "f1-score": 0.8288, "support": 360},
-        "weighted avg": {"precision": 0.8499, "recall": 0.8278, "f1-score": 0.8288, "support": 360}
-    }
 
     eval_dir = Path("evaluation_results")
-    cm_img_p = eval_dir / "confusion_matrix.png"
-    roc_img_p = eval_dir / "roc_curves.png"
-    bar_img_p = eval_dir / "class_performance_metrics.png"
     rep_json_p = eval_dir / "classification_report.json"
+    data_json_p = eval_dir / "eval_data.json"
 
-    if rep_json_p.exists():
-        with open(rep_json_p, "r") as f:
-            rep_data = json.load(f)
+    def _load_json(p):
+        try:
+            with open(p, "r") as f:
+                return json.load(f)
+        except Exception:
+            return None
+
+    rep_data = _load_json(rep_json_p) if rep_json_p.exists() else None
+    eval_data = _load_json(data_json_p) if data_json_p.exists() else None
+
+    if rep_data is None:
+        st.warning(
+            "No evaluation results found. Run `python evaluate.py` after training, "
+            "then commit the `evaluation_results/` folder (together with `best_model.pth`) "
+            "if you deploy to Streamlit Cloud."
+        )
     else:
-        rep_data = PERMANENT_BENCHMARK
+        n_val = int(rep_data["macro avg"]["support"])
+        last_run = time.strftime("%d %b %Y, %H:%M", time.localtime(rep_json_p.stat().st_mtime))
+        st.markdown(f"Quantitative assessment on the independent validation split ({n_val} steel plate micrographs).")
+        st.caption(f"Last evaluated: {last_run}")
 
-    # Overview Metrics Row
-    e1, e2, e3, e4 = st.columns(4)
-    e1.metric("Validation Accuracy", f"{rep_data['accuracy']*100:.2f}%")
-    e2.metric("Macro Avg F1-Score", f"{rep_data['macro avg']['f1-score']:.4f}")
-    e3.metric("Weighted Avg Precision", f"{rep_data['weighted avg']['precision']:.4f}")
-    e4.metric("Weighted Avg Recall", f"{rep_data['weighted avg']['recall']:.4f}")
+        class_labels = [c.replace("_", " ").title() for c in DEFECT_CLASSES]
 
-    st.markdown("---")
-
-    # Visual Graphs 2x2
-    g_col1, g_col2 = st.columns(2)
-    with g_col1:
-        st.markdown("#### 1. Confusion Matrix (Normalized)")
-        if cm_img_p.exists():
-            st.image(str(cm_img_p), use_container_width=True)
+        # Overview metrics row
+        e1, e2, e3, e4, e5 = st.columns(5)
+        e1.metric("Validation Accuracy", f"{rep_data['accuracy']*100:.2f}%")
+        e2.metric("Macro Avg F1-Score", f"{rep_data['macro avg']['f1-score']:.4f}")
+        e3.metric("Weighted Avg Precision", f"{rep_data['weighted avg']['precision']:.4f}")
+        e4.metric("Weighted Avg Recall", f"{rep_data['weighted avg']['recall']:.4f}")
+        if eval_data:
+            e5.metric("Macro ROC-AUC", f"{eval_data['macro_auc']:.4f}")
         else:
-            # Interactive Plotly Confusion Matrix fallback for Cloud
-            cm_matrix = [
-                [1.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-                [0.05, 0.78, 0.00, 0.17, 0.00, 0.00],
-                [0.00, 0.00, 0.85, 0.00, 0.15, 0.00],
-                [0.05, 0.25, 0.00, 0.70, 0.00, 0.00],
-                [0.00, 0.00, 0.00, 0.00, 1.00, 0.00],
-                [0.00, 0.17, 0.00, 0.00, 0.20, 0.63]
-            ]
-            fig_cm = go.Figure(data=go.Heatmap(
-                z=cm_matrix,
-                x=[c.replace("_", " ").title() for c in DEFECT_CLASSES],
-                y=[c.replace("_", " ").title() for c in DEFECT_CLASSES],
-                colorscale="Blues",
-                text=[[f"{val*100:.1f}%" for val in row] for row in cm_matrix],
-                texttemplate="%{text}",
-                showscale=True
-            ))
-            fig_cm.update_layout(
-                xaxis_title="Predicted Class",
-                yaxis_title="True Class",
-                height=380,
-                margin=dict(l=0, r=20, t=10, b=10)
-            )
-            st.plotly_chart(fig_cm, use_container_width=True)
+            e5.metric("Macro ROC-AUC", "—")
 
-    with g_col2:
-        st.markdown("#### 2. ROC-AUC Performance Curves")
-        if roc_img_p.exists():
-            st.image(str(roc_img_p), use_container_width=True)
-        else:
-            # Multi-Class ROC Curves with distinct trajectory coordinates and colors
-            roc_trajectories = {
-                "Crazing (AUC = 0.998)": {
-                    "x": [0.0, 0.0, 0.017, 0.05, 0.12, 1.0],
-                    "y": [0.0, 0.92, 0.983, 1.0, 1.0, 1.0],
-                    "color": "#2563eb"  # Royal Blue
-                },
-                "Rolled-In Scale (AUC = 0.994)": {
-                    "x": [0.0, 0.017, 0.033, 0.08, 0.18, 1.0],
-                    "y": [0.0, 0.90, 0.967, 0.985, 1.0, 1.0],
-                    "color": "#0d9488"  # Teal
-                },
-                "Patches (AUC = 0.985)": {
-                    "x": [0.0, 0.033, 0.067, 0.12, 0.25, 1.0],
-                    "y": [0.0, 0.833, 0.917, 0.967, 1.0, 1.0],
-                    "color": "#ea580c"  # Orange
-                },
-                "Scratches (AUC = 0.941)": {
-                    "x": [0.0, 0.05, 0.10, 0.22, 0.38, 1.0],
-                    "y": [0.0, 0.633, 0.783, 0.883, 0.967, 1.0],
-                    "color": "#16a34a"  # Green
-                },
-                "Inclusion (AUC = 0.932)": {
-                    "x": [0.0, 0.08, 0.15, 0.28, 0.45, 1.0],
-                    "y": [0.0, 0.717, 0.817, 0.90, 0.967, 1.0],
-                    "color": "#d97706"  # Amber
-                },
-                "Pitted Surface (AUC = 0.927)": {
-                    "x": [0.0, 0.10, 0.20, 0.35, 0.52, 1.0],
-                    "y": [0.0, 0.650, 0.767, 0.867, 0.950, 1.0],
-                    "color": "#dc2626"  # Crimson Red
-                }
-            }
-            fig_roc = go.Figure()
-            for label, data in roc_trajectories.items():
-                fig_roc.add_trace(go.Scatter(
-                    x=data["x"],
-                    y=data["y"],
-                    mode="lines+markers",
-                    marker=dict(size=4),
-                    line=dict(color=data["color"], width=2.2),
-                    name=label
+        st.markdown("---")
+
+        # ── 1 & 2: Confusion matrix + ROC ────────────────────────────────────
+        g_col1, g_col2 = st.columns(2)
+        with g_col1:
+            st.markdown("#### 1. Confusion Matrix (Normalized)")
+            if eval_data:
+                cm_norm = np.array(eval_data["confusion_matrix_normalized"])
+                cm_cnt = np.array(eval_data["confusion_matrix_counts"])
+                fig_cm = go.Figure(data=go.Heatmap(
+                    z=cm_norm, x=class_labels, y=class_labels,
+                    colorscale="Blues", zmin=0, zmax=1,
+                    text=[[f"{cm_norm[i][j]*100:.1f}%<br>({cm_cnt[i][j]})" for j in range(len(class_labels))]
+                          for i in range(len(class_labels))],
+                    texttemplate="%{text}", showscale=True
                 ))
-            fig_roc.add_trace(go.Scatter(
-                x=[0, 1], y=[0, 1],
-                mode="lines",
-                line=dict(dash="dash", color="#64748b", width=1.5),
-                name="Random (0.50)"
-            ))
-            fig_roc.update_layout(
-                xaxis_title="False Positive Rate (FPR)",
-                yaxis_title="True Positive Rate (Sensitivity / Recall)",
-                height=380,
-                margin=dict(l=0, r=20, t=10, b=10),
-                legend=dict(font=dict(size=9.5), yanchor="bottom", y=0.03, xanchor="right", x=0.98)
-            )
-            st.plotly_chart(fig_roc, use_container_width=True)
+                fig_cm.update_layout(
+                    xaxis_title="Predicted Class", yaxis_title="True Class",
+                    yaxis=dict(autorange="reversed"),
+                    height=420, margin=dict(l=0, r=20, t=10, b=10)
+                )
+                st.plotly_chart(fig_cm, use_container_width=True)
+            elif (eval_dir / "confusion_matrix.png").exists():
+                st.image(str(eval_dir / "confusion_matrix.png"), use_container_width=True)
+            else:
+                st.info("Re-run `python evaluate.py` to generate this chart.")
 
-    st.markdown("---")
+        with g_col2:
+            st.markdown("#### 2. ROC-AUC Performance Curves")
+            if eval_data:
+                palette = ["#2563eb", "#d97706", "#ea580c", "#dc2626", "#0d9488", "#16a34a"]
+                fig_roc = go.Figure()
+                for i, name in enumerate(class_labels):
+                    r = eval_data["roc"][name]
+                    fig_roc.add_trace(go.Scatter(
+                        x=r["fpr"], y=r["tpr"], mode="lines",
+                        line=dict(color=palette[i % len(palette)], width=2.2),
+                        name=f"{name} (AUC = {r['auc']:.3f})"
+                    ))
+                fig_roc.add_trace(go.Scatter(
+                    x=[0, 1], y=[0, 1], mode="lines",
+                    line=dict(dash="dash", color="#64748b", width=1.5), name="Random (0.500)"
+                ))
+                fig_roc.update_layout(
+                    xaxis_title="False Positive Rate (FPR)",
+                    yaxis_title="True Positive Rate (Sensitivity / Recall)",
+                    height=420, margin=dict(l=0, r=20, t=10, b=10),
+                    legend=dict(font=dict(size=9.5), yanchor="bottom", y=0.03, xanchor="right", x=0.98)
+                )
+                st.plotly_chart(fig_roc, use_container_width=True)
+            elif (eval_dir / "roc_curves.png").exists():
+                st.image(str(eval_dir / "roc_curves.png"), use_container_width=True)
+            else:
+                st.info("Re-run `python evaluate.py` to generate this chart.")
 
-    g_col3, g_col4 = st.columns([1.2, 0.8])
-    with g_col3:
-        st.markdown("#### 3. Precision, Recall & F1-Score Breakdown")
-        if bar_img_p.exists():
-            st.image(str(bar_img_p), use_container_width=True)
-        else:
-            # Interactive Plotly Multi-bar fallback
-            classes_list = [c.replace("_", " ").title() for c in DEFECT_CLASSES]
+        st.markdown("---")
+
+        # ── 3 & 4: Per-class bars + report table ─────────────────────────────
+        g_col3, g_col4 = st.columns([1.2, 0.8])
+        with g_col3:
+            st.markdown("#### 3. Precision, Recall & F1-Score Breakdown")
             fig_bar = go.Figure(data=[
-                go.Bar(name='Precision', x=classes_list, y=[rep_data[c]['precision'] for c in classes_list], marker_color='#3b82f6'),
-                go.Bar(name='Recall', x=classes_list, y=[rep_data[c]['recall'] for c in classes_list], marker_color='#10b981'),
-                go.Bar(name='F1-Score', x=classes_list, y=[rep_data[c]['f1-score'] for c in classes_list], marker_color='#6366f1')
+                go.Bar(name="Precision", x=class_labels, y=[rep_data[c]["precision"] for c in class_labels], marker_color="#3b82f6"),
+                go.Bar(name="Recall", x=class_labels, y=[rep_data[c]["recall"] for c in class_labels], marker_color="#10b981"),
+                go.Bar(name="F1-Score", x=class_labels, y=[rep_data[c]["f1-score"] for c in class_labels], marker_color="#6366f1"),
             ])
             fig_bar.update_layout(
-                barmode='group',
-                yaxis_title="Score (0.0 - 1.0)",
-                yaxis=dict(range=[0, 1.15]),
-                height=320,
-                margin=dict(l=0, r=10, t=10, b=10)
+                barmode="group", yaxis_title="Score (0.0 - 1.0)", yaxis=dict(range=[0, 1.1]),
+                height=340, margin=dict(l=0, r=10, t=10, b=10)
             )
             st.plotly_chart(fig_bar, use_container_width=True)
 
-    with g_col4:
-        st.markdown("#### 4. Classification Report Table")
-        table_rows = []
-        for cls_k in [c.replace("_", " ").title() for c in DEFECT_CLASSES]:
-            if cls_k in rep_data:
-                table_rows.append({
-                    "Class": cls_k,
-                    "Precision": round(rep_data[cls_k]["precision"], 3),
-                    "Recall": round(rep_data[cls_k]["recall"], 3),
-                    "F1": round(rep_data[cls_k]["f1-score"], 3),
-                    "Support": int(rep_data[cls_k]["support"])
-                })
-        st.dataframe(pd.DataFrame(table_rows), height=260, use_container_width=True)
+        with g_col4:
+            st.markdown("#### 4. Classification Report Table")
+            table_rows = [{
+                "Class": c,
+                "Precision": round(rep_data[c]["precision"], 3),
+                "Recall": round(rep_data[c]["recall"], 3),
+                "F1": round(rep_data[c]["f1-score"], 3),
+                "Support": int(rep_data[c]["support"]),
+            } for c in class_labels if c in rep_data]
+            st.dataframe(pd.DataFrame(table_rows), height=260, use_container_width=True)
+
+        # ── 5: Training curves ───────────────────────────────────────────────
+        hist = eval_data.get("history") if eval_data else None
+        if hist:
+            st.markdown("---")
+            st.markdown("#### 5. Training vs Validation Curves")
+            h1, h2 = st.columns(2)
+            with h1:
+                fig_l = go.Figure()
+                fig_l.add_trace(go.Scatter(x=hist["epoch"], y=hist["train_loss"], mode="lines+markers", name="Train Loss", line=dict(color="#ef4444")))
+                fig_l.add_trace(go.Scatter(x=hist["epoch"], y=hist["val_loss"], mode="lines+markers", name="Val Loss", line=dict(color="#3b82f6")))
+                fig_l.update_layout(xaxis_title="Epoch", yaxis_title="Cross-Entropy Loss", height=300, margin=dict(l=0, r=10, t=10, b=10))
+                st.plotly_chart(fig_l, use_container_width=True)
+            with h2:
+                fig_a = go.Figure()
+                fig_a.add_trace(go.Scatter(x=hist["epoch"], y=[a * 100 for a in hist["train_acc"]], mode="lines+markers", name="Train Accuracy", line=dict(color="#10b981")))
+                fig_a.add_trace(go.Scatter(x=hist["epoch"], y=[a * 100 for a in hist["val_acc"]], mode="lines+markers", name="Val Accuracy", line=dict(color="#6366f1")))
+                fig_a.update_layout(xaxis_title="Epoch", yaxis_title="Accuracy (%)", height=300, margin=dict(l=0, r=10, t=10, b=10))
+                st.plotly_chart(fig_a, use_container_width=True)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

@@ -35,6 +35,11 @@ def evaluate_system(data_dir, checkpoint_path="best_model.pth", output_dir="eval
     val_set = SteelDataset(data_dir, split="validation", transform=val_tf)
     val_loader = DataLoader(val_set, batch_size=32, shuffle=False)
     print(f"[Dataset] Found {len(val_set)} validation images across {len(DEFECT_CLASSES)} classes.")
+    if len(val_set) == 0:
+        raise FileNotFoundError(
+            f"No validation images found under '{data_dir}'. "
+            "Check --data_dir (it must contain a 'validation' folder)."
+        )
 
     # 2. Load Model
     model = MicroCrackEfficientNetB0(num_classes=6, pretrained=False)
@@ -170,10 +175,13 @@ def evaluate_system(data_dir, checkpoint_path="best_model.pth", output_dir="eval
     # -------------------------------------------------------------
     # GRAPH 4: Training & Validation Curves (if training_log.json exists)
     # -------------------------------------------------------------
-    log_path = Path("training_log.json")
-    if log_path.exists():
-        with open(log_path, "r") as f:
-            hist = json.load(f)
+    hist = None
+    for cand in ("training_log.json", "training_history.json"):
+        if Path(cand).exists():
+            with open(cand, "r") as f:
+                hist = json.load(f)
+            break
+    if hist is not None:
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.5))
         epochs_range = hist.get("epoch", list(range(1, len(hist["train_loss"]) + 1)))
@@ -202,12 +210,41 @@ def evaluate_system(data_dir, checkpoint_path="best_model.pth", output_dir="eval
         plt.close()
         print(f"[Graph Saved] Learning Curves -> {curves_path}")
 
+
+    # -------------------------------------------------------------
+    # Raw evaluation data for the Streamlit app (interactive charts)
+    # -------------------------------------------------------------
+    n_hist = len(hist["train_loss"]) if hist else 0
+    eval_data = {
+        "class_names": class_names_clean,
+        "accuracy": float(report_dict["accuracy"]),
+        "n_samples": int(len(y_true)),
+        "confusion_matrix_counts": cm.tolist(),
+        "confusion_matrix_normalized": cm_normalized.tolist(),
+        "roc": {
+            class_names_clean[i]: {
+                "fpr": [round(float(v), 4) for v in fpr[i]],
+                "tpr": [round(float(v), 4) for v in tpr[i]],
+                "auc": round(float(roc_auc[i]), 4),
+            } for i in range(len(DEFECT_CLASSES))
+        },
+        "macro_auc": round(float(np.mean(list(roc_auc.values()))), 4),
+        "history": {
+            "epoch": hist.get("epoch", list(range(1, n_hist + 1))),
+            "train_loss": hist["train_loss"], "val_loss": hist["val_loss"],
+            "train_acc": hist["train_acc"], "val_acc": hist["val_acc"],
+        } if hist else None,
+    }
+    with open(os.path.join(output_dir, "eval_data.json"), "w") as f:
+        json.dump(eval_data, f)
+    print(f"[Data Saved] App chart data -> {os.path.join(output_dir, 'eval_data.json')}")
+
     print("\n[Done] All evaluation graphs and reports generated successfully in:", output_dir)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", type=str, default=r"c:\Users\harsh\Downloads\archive\NEU-DET")
+    parser.add_argument("--data_dir", type=str, default=r"C:\Users\harsh\Downloads\NEU-DET")
     parser.add_argument("--checkpoint", type=str, default="best_model.pth")
     parser.add_argument("--out_dir", type=str, default="evaluation_results")
     args = parser.parse_args()
