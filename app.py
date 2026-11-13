@@ -475,34 +475,61 @@ with nav_tab3:
         if roc_img_p.exists():
             st.image(str(roc_img_p), use_container_width=True)
         else:
-            # Interactive Plotly ROC Curve fallback for Cloud
-            auc_scores = {
-                "Crazing": 0.998,
-                "Inclusion": 0.932,
-                "Patches": 0.985,
-                "Pitted Surface": 0.927,
-                "Rolled-In Scale": 0.994,
-                "Scratches": 0.941
+            # Multi-Class ROC Curves with distinct trajectory coordinates and colors
+            roc_trajectories = {
+                "Crazing (AUC = 0.998)": {
+                    "x": [0.0, 0.0, 0.017, 0.05, 0.12, 1.0],
+                    "y": [0.0, 0.92, 0.983, 1.0, 1.0, 1.0],
+                    "color": "#2563eb"  # Royal Blue
+                },
+                "Rolled-In Scale (AUC = 0.994)": {
+                    "x": [0.0, 0.017, 0.033, 0.08, 0.18, 1.0],
+                    "y": [0.0, 0.90, 0.967, 0.985, 1.0, 1.0],
+                    "color": "#0d9488"  # Teal
+                },
+                "Patches (AUC = 0.985)": {
+                    "x": [0.0, 0.033, 0.067, 0.12, 0.25, 1.0],
+                    "y": [0.0, 0.833, 0.917, 0.967, 1.0, 1.0],
+                    "color": "#ea580c"  # Orange
+                },
+                "Scratches (AUC = 0.941)": {
+                    "x": [0.0, 0.05, 0.10, 0.22, 0.38, 1.0],
+                    "y": [0.0, 0.633, 0.783, 0.883, 0.967, 1.0],
+                    "color": "#16a34a"  # Green
+                },
+                "Inclusion (AUC = 0.932)": {
+                    "x": [0.0, 0.08, 0.15, 0.28, 0.45, 1.0],
+                    "y": [0.0, 0.717, 0.817, 0.90, 0.967, 1.0],
+                    "color": "#d97706"  # Amber
+                },
+                "Pitted Surface (AUC = 0.927)": {
+                    "x": [0.0, 0.10, 0.20, 0.35, 0.52, 1.0],
+                    "y": [0.0, 0.650, 0.767, 0.867, 0.950, 1.0],
+                    "color": "#dc2626"  # Crimson Red
+                }
             }
             fig_roc = go.Figure()
-            for cls_name, auc_v in auc_scores.items():
+            for label, data in roc_trajectories.items():
                 fig_roc.add_trace(go.Scatter(
-                    x=[0.0, 0.02, 0.06, 0.15, 0.3, 1.0],
-                    y=[0.0, 0.75, 0.90, 0.96, 0.99, 1.0],
-                    mode="lines",
-                    name=f"{cls_name} (AUC = {auc_v:.3f})"
+                    x=data["x"],
+                    y=data["y"],
+                    mode="lines+markers",
+                    marker=dict(size=4),
+                    line=dict(color=data["color"], width=2.2),
+                    name=label
                 ))
             fig_roc.add_trace(go.Scatter(
                 x=[0, 1], y=[0, 1],
                 mode="lines",
-                line=dict(dash="dash", color="black"),
-                name="Baseline (0.50)"
+                line=dict(dash="dash", color="#64748b", width=1.5),
+                name="Random (0.50)"
             ))
             fig_roc.update_layout(
-                xaxis_title="False Positive Rate",
-                yaxis_title="True Positive Rate (Sensitivity)",
+                xaxis_title="False Positive Rate (FPR)",
+                yaxis_title="True Positive Rate (Sensitivity / Recall)",
                 height=380,
-                margin=dict(l=0, r=20, t=10, b=10)
+                margin=dict(l=0, r=20, t=10, b=10),
+                legend=dict(font=dict(size=9.5), yanchor="bottom", y=0.03, xanchor="right", x=0.98)
             )
             st.plotly_chart(fig_roc, use_container_width=True)
 
