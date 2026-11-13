@@ -347,13 +347,24 @@ with nav_tab1:
 # ═════════════════════════════════════════════════════════════════════════════
 with nav_tab2:
     st.subheader("Benchmark Validation on NEU Surface Defect Database")
-    neu_path = Path(r"c:\Users\harsh\Downloads\archive\NEU-DET")
 
-    val_dir = neu_path / "validation" / "images"
-    if not val_dir.exists():
-        val_dir = neu_path / "train" / "images"
+    # Look first in local repo sample_plates (works everywhere including Streamlit Cloud), then fallback to local path
+    possible_roots = [
+        Path("sample_plates"),
+        Path(r"c:\Users\harsh\OneDrive\Desktop\College\AI\tata_steel_inspection\sample_plates"),
+        Path(r"C:\Users\harsh\Downloads\NEU-DET\validation\images"),
+        Path(r"C:\Users\harsh\Downloads\NEU-DET\train\images"),
+        Path(r"c:\Users\harsh\Downloads\archive\NEU-DET\validation\images"),
+        Path(r"c:\Users\harsh\Downloads\archive\NEU-DET\train\images"),
+    ]
 
-    if val_dir.exists():
+    val_dir = None
+    for p in possible_roots:
+        if p.exists():
+            val_dir = p
+            break
+
+    if val_dir is not None:
         sel_cat = st.selectbox(
             "Select Defect Class to Sample:",
             DEFECT_CLASSES,
@@ -393,7 +404,7 @@ with nav_tab2:
         else:
             st.warning("No image files found in chosen class directory.")
     else:
-        st.warning(f"NEU-DET database not found at `{neu_path}`.")
+        st.info("Upload steel plates using the 'Microscopic Defect Analysis' tab, or include a 'sample_plates/' folder in your repository.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
