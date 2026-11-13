@@ -39,6 +39,42 @@ st.set_page_config(
 # Enterprise Technical Styling
 st.markdown("""
 <style>
+    .hero-gallery {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 22px;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .hero-img-box {
+        position: relative;
+        height: 155px;
+        background-size: cover;
+        background-position: center;
+        border-radius: 8px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 4px 12px rgba(15,23,42,0.08);
+        transition: transform 0.3s ease, filter 0.3s ease;
+    }
+    .hero-img-box:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.05);
+    }
+    .hero-tag {
+        position: absolute;
+        bottom: 8px;
+        left: 10px;
+        background: rgba(15, 23, 42, 0.72);
+        backdrop-filter: blur(4px);
+        color: #f8fafc;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.15);
+    }
     .enterprise-banner {
         border-bottom: 2px solid #1e293b;
         padding-bottom: 14px;
@@ -230,6 +266,18 @@ with st.sidebar:
 # Main Screen
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown("""
+<div class="hero-gallery">
+    <div class="hero-img-box" style="background-image: linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.65) 100%), url('https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=80');">
+        <span class="hero-tag">Hot Strip Mill Continuous Rolling</span>
+    </div>
+    <div class="hero-img-box" style="background-image: linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.65) 100%), url('https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80');">
+        <span class="hero-tag">Optical Surface Inspection</span>
+    </div>
+    <div class="hero-img-box" style="background-image: linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.65) 100%), url('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80');">
+        <span class="hero-tag">Finished Cold-Rolled Coil</span>
+    </div>
+</div>
+
 <div class="enterprise-banner">
     <div class="banner-top-row">
         <h1 class="hero-brand">STEEL VISION</h1>
