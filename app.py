@@ -280,32 +280,14 @@ with st.sidebar:
 img1_p = Path("header_steel.jpg")
 img2_p = Path("header_steel_line.jpg")
 
-banners_html = []
-if img1_p.exists():
-    with open(img1_p, "rb") as f:
-        b64_1 = base64.b64encode(f.read()).decode()
-    banners_html.append(f"""
-    <div class="hero-banner-container">
-        <img class="hero-banner-img" style="object-position: center 38%;" src="data:image/jpeg;base64,{b64_1}" alt="Hot Strip Mill Line" />
-        <div class="hero-banner-overlay"></div>
-        <div class="hero-banner-tag">Optical Coiling & Strip Quality Inspection</div>
-    </div>
-    """)
+col_img1, col_img2 = st.columns(2)
+with col_img1:
+    if img1_p.exists():
+        st.image(str(img1_p), caption="Optical Coiling & Strip Quality Inspection", use_container_width=True)
 
-if img2_p.exists():
-    with open(img2_p, "rb") as f:
-        b64_2 = base64.b64encode(f.read()).decode()
-    banners_html.append(f"""
-    <div class="hero-banner-container">
-        <img class="hero-banner-img" style="object-position: center 50%;" src="data:image/jpeg;base64,{b64_2}" alt="Conveyor Surface Inspection" />
-        <div class="hero-banner-overlay"></div>
-        <div class="hero-banner-tag">Real-Time Micro-Defect Localization & Tracking</div>
-    </div>
-    """)
-
-if banners_html:
-    grid_content = "".join(banners_html)
-    st.markdown(f'<div class="hero-dual-grid">{grid_content}</div>', unsafe_allow_html=True)
+with col_img2:
+    if img2_p.exists():
+        st.image(str(img2_p), caption="Real-Time Micro-Defect Localization & Tracking", use_container_width=True)
 
 st.markdown("""
 <div class="enterprise-banner">
