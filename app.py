@@ -283,11 +283,11 @@ img2_p = Path("header_steel_line.jpg")
 col_img1, col_img2 = st.columns(2)
 with col_img1:
     if img1_p.exists():
-        st.image(str(img1_p), caption="Optical Coiling & Strip Quality Inspection", use_container_width=True)
+        st.image(str(img1_p), use_container_width=True)
 
 with col_img2:
     if img2_p.exists():
-        st.image(str(img2_p), caption="Real-Time Micro-Defect Localization & Tracking", use_container_width=True)
+        st.image(str(img2_p), use_container_width=True)
 
 st.markdown("""
 <div class="enterprise-banner">
