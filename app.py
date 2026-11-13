@@ -40,43 +40,52 @@ st.set_page_config(
 # Enterprise Technical Styling
 st.markdown("""
 <style>
+    .hero-dual-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 22px;
+    }
     .hero-banner-container {
         position: relative;
         width: 100%;
-        height: 260px;
+        height: 240px;
         border-radius: 10px;
         overflow: hidden;
-        margin-bottom: 22px;
         border: 1px solid #334155;
-        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+        box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.22);
     }
     .hero-banner-img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        object-position: center 38%;
         filter: contrast(1.05) brightness(0.92);
+        transition: transform 0.4s ease, filter 0.4s ease;
+    }
+    .hero-banner-container:hover .hero-banner-img {
+        transform: scale(1.02);
+        filter: contrast(1.08) brightness(0.98);
     }
     .hero-banner-overlay {
         position: absolute;
         inset: 0;
-        background: linear-gradient(180deg, rgba(15,23,42,0.15) 0%, rgba(15,23,42,0.65) 100%);
+        background: linear-gradient(180deg, rgba(15,23,42,0.12) 0%, rgba(15,23,42,0.68) 100%);
         pointer-events: none;
     }
     .hero-banner-tag {
         position: absolute;
-        bottom: 14px;
-        left: 16px;
+        bottom: 12px;
+        left: 14px;
         background: rgba(15, 23, 42, 0.78);
         backdrop-filter: blur(6px);
         color: #f1f5f9;
-        font-size: 0.75rem;
+        font-size: 0.74rem;
         font-weight: 600;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.07em;
         text-transform: uppercase;
-        padding: 4px 12px;
+        padding: 4px 10px;
         border-radius: 4px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.18);
     }
     .enterprise-banner {
         border-bottom: 2px solid #1e293b;
@@ -268,18 +277,35 @@ with st.sidebar:
 # ─────────────────────────────────────────────────────────────────────────────
 # Main Screen
 # ─────────────────────────────────────────────────────────────────────────────
-header_img_path = Path("header_steel.jpg")
-if header_img_path.exists():
-    with open(header_img_path, "rb") as f:
-        img_b64 = base64.b64encode(f.read()).decode()
-    banner_html = f"""
+img1_p = Path("header_steel.jpg")
+img2_p = Path("header_steel_line.jpg")
+
+banners_html = []
+if img1_p.exists():
+    with open(img1_p, "rb") as f:
+        b64_1 = base64.b64encode(f.read()).decode()
+    banners_html.append(f"""
     <div class="hero-banner-container">
-        <img class="hero-banner-img" src="data:image/jpeg;base64,{img_b64}" alt="Tata Steel Mill AI Inspection" />
+        <img class="hero-banner-img" style="object-position: center 38%;" src="data:image/jpeg;base64,{b64_1}" alt="Hot Strip Mill Line" />
         <div class="hero-banner-overlay"></div>
-        <div class="hero-banner-tag">Autonomous Optical Quality Inspection &bull; Hot Strip Line</div>
+        <div class="hero-banner-tag">Optical Coiling & Strip Quality Inspection</div>
     </div>
-    """
-    st.markdown(banner_html, unsafe_allow_html=True)
+    """)
+
+if img2_p.exists():
+    with open(img2_p, "rb") as f:
+        b64_2 = base64.b64encode(f.read()).decode()
+    banners_html.append(f"""
+    <div class="hero-banner-container">
+        <img class="hero-banner-img" style="object-position: center 50%;" src="data:image/jpeg;base64,{b64_2}" alt="Conveyor Surface Inspection" />
+        <div class="hero-banner-overlay"></div>
+        <div class="hero-banner-tag">Real-Time Micro-Defect Localization & Tracking</div>
+    </div>
+    """)
+
+if banners_html:
+    grid_content = "".join(banners_html)
+    st.markdown(f'<div class="hero-dual-grid">{grid_content}</div>', unsafe_allow_html=True)
 
 st.markdown("""
 <div class="enterprise-banner">
