@@ -15,6 +15,7 @@ import torch
 from torchvision import transforms
 from PIL import Image
 import json
+import base64
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
@@ -39,41 +40,43 @@ st.set_page_config(
 # Enterprise Technical Styling
 st.markdown("""
 <style>
-    .hero-gallery {
-        display: grid;
-        grid-template-columns: 2fr 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 22px;
-        border-radius: 12px;
-        overflow: hidden;
-    }
-    .hero-img-box {
+    .hero-banner-container {
         position: relative;
-        height: 155px;
-        background-size: cover;
-        background-position: center;
-        border-radius: 8px;
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 4px 12px rgba(15,23,42,0.08);
-        transition: transform 0.3s ease, filter 0.3s ease;
+        width: 100%;
+        height: 260px;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 22px;
+        border: 1px solid #334155;
+        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
     }
-    .hero-img-box:hover {
-        transform: translateY(-2px);
-        filter: brightness(1.05);
+    .hero-banner-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center 38%;
+        filter: contrast(1.05) brightness(0.92);
     }
-    .hero-tag {
+    .hero-banner-overlay {
         position: absolute;
-        bottom: 8px;
-        left: 10px;
-        background: rgba(15, 23, 42, 0.72);
-        backdrop-filter: blur(4px);
-        color: #f8fafc;
-        font-size: 0.72rem;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(15,23,42,0.15) 0%, rgba(15,23,42,0.65) 100%);
+        pointer-events: none;
+    }
+    .hero-banner-tag {
+        position: absolute;
+        bottom: 14px;
+        left: 16px;
+        background: rgba(15, 23, 42, 0.78);
+        backdrop-filter: blur(6px);
+        color: #f1f5f9;
+        font-size: 0.75rem;
         font-weight: 600;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        padding: 3px 8px;
+        padding: 4px 12px;
         border-radius: 4px;
-        border: 1px solid rgba(255,255,255,0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
     .enterprise-banner {
         border-bottom: 2px solid #1e293b;
@@ -265,19 +268,20 @@ with st.sidebar:
 # ─────────────────────────────────────────────────────────────────────────────
 # Main Screen
 # ─────────────────────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="hero-gallery">
-    <div class="hero-img-box" style="background-image: linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.65) 100%), url('https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=80');">
-        <span class="hero-tag">Hot Strip Mill Continuous Rolling</span>
+header_img_path = Path("header_steel.jpg")
+if header_img_path.exists():
+    with open(header_img_path, "rb") as f:
+        img_b64 = base64.b64encode(f.read()).decode()
+    banner_html = f"""
+    <div class="hero-banner-container">
+        <img class="hero-banner-img" src="data:image/jpeg;base64,{img_b64}" alt="Tata Steel Mill AI Inspection" />
+        <div class="hero-banner-overlay"></div>
+        <div class="hero-banner-tag">Autonomous Optical Quality Inspection &bull; Hot Strip Line</div>
     </div>
-    <div class="hero-img-box" style="background-image: linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.65) 100%), url('https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80');">
-        <span class="hero-tag">Optical Surface Inspection</span>
-    </div>
-    <div class="hero-img-box" style="background-image: linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.65) 100%), url('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80');">
-        <span class="hero-tag">Finished Cold-Rolled Coil</span>
-    </div>
-</div>
+    """
+    st.markdown(banner_html, unsafe_allow_html=True)
 
+st.markdown("""
 <div class="enterprise-banner">
     <div class="banner-top-row">
         <h1 class="hero-brand">STEEL VISION</h1>
